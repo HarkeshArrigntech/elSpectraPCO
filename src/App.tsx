@@ -9,13 +9,15 @@ import Signup from "./signup";
 import { ThemeProvider } from "@material-ui/core";
 import { createMuiTheme } from "@material-ui/core/styles";
 import { Notification } from "./components/SnackBar";
-import { orange,green } from "@material-ui/core/colors";
+import { orange, green } from "@material-ui/core/colors";
+import { useHistory } from "react-router-dom";
+
 const theme = createMuiTheme({
 	palette: {
 		common: { black: "#000", white: "#fff" },
 		primary: { main: green[700], light: green[100] },
 		secondary: { main: orange[700], light: orange[100] },
-	}
+	},
 });
 interface RootState {
 	auth: any;
@@ -29,14 +31,20 @@ const mapState = (state: RootState) => ({
 const mapDispatch = {
 	setInitUrl: (path: string) => ({ type: "INIT_URL", payload: path }),
 	closeNotification: () => ({ type: "HIDE_MESSAGE" }),
+	emptyNextURL: () => ({ type: "NEXT_URL_EMPTY" }),
 };
 const connector = connect(mapState, mapDispatch);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
 const MainApp = (props: PropsFromRedux) => {
+	const history = useHistory();
 	useEffect(() => {
 		if (props.initURL === "") {
 			props.setInitUrl(props.router.location.pathname);
+		}
+		if (props.nextURL !== "") {
+			history.push(props.nextURL);
+			props.emptyNextURL();
 		}
 	});
 	if (props.router.location.pathname === "/") {
@@ -48,7 +56,7 @@ const MainApp = (props: PropsFromRedux) => {
 			props.initURL === "/signin" ||
 			props.initURL === "/setPassword"
 		) {
-			return <Redirect to={"/dashboard"} />;
+			return <Redirect to={"/home"} />;
 		} else {
 			return <Redirect to={props.initURL} />;
 		}
@@ -78,14 +86,13 @@ const MainApp = (props: PropsFromRedux) => {
 						path={"/Home"}
 						component={Home}
 					/>
-					
+
 					<Route path='/signin'>
 						<Signin />
 					</Route>
 					<Route path='/signup'>
 						<Signup />
 					</Route>
-
 				</Switch>
 			</ThemeProvider>
 		</>

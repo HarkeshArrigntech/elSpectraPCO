@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import Avatar from "@material-ui/core/Avatar";
 import { withRouter } from "react-router";
 import { connect, ConnectedProps } from "react-redux";
-import { SIGNIN_USER } from "./auctions";
+import { SIGNUP_USER } from "./auctions";
 import {Link, useHistory } from "react-router-dom";
 import Button from "@material-ui/core/Button";
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -45,7 +45,8 @@ const mapState = (state: RootState) => ({
 	...state["auth"],
 });
 const mapDispatch = {
-	signinUser: (data: any) => ({ type: SIGNIN_USER, payload: data }),
+	signUpUser: (data: any) => ({ type: SIGNUP_USER, payload: data }),
+	showMessage: (data:any)=> ({type:"SHOW_MESSAGE",payload:data})
 };
 const connector = connect(mapState, mapDispatch);
 type PropsFromRedux = ConnectedProps<typeof connector>;
@@ -64,7 +65,34 @@ const Signup = (props: PropsFromRedux) => {
 	let [password1Hide, setPassword1Hide] = React.useState(true);
 	let [password2, setPassword2] = React.useState("");
 	let [password2Hide, setPassword2Hide] = React.useState(true);
-
+   const signUp=()=>{
+	   if(userName === "" || emailID === "" || password1 === "" || password2 === ""){
+		props.showMessage({
+			msg:"Please Enter all the fields",
+			type:"error"
+		})
+	   }
+	   else{
+		   if (/^\w+([-]?\w+)*@\w+([-]?\w+)*(\.\w{2,3})+$/.test(emailID)){
+			if(password1 !== password2){
+				props.showMessage({
+					msg:"Passwords Dont Match",
+					type:"error"
+				})
+			}else{
+				props.signUpUser({
+					emailId:emailID,password:password1,userName:userName
+				})
+			}
+		   }else{
+			props.showMessage({
+				msg:"Email Id Invalid Formate",
+				type:"error"
+			})
+		   }
+    
+}
+   }
 	return (
 		<Container component='main' maxWidth='xs'>
 			<CssBaseline />
@@ -127,8 +155,7 @@ const Signup = (props: PropsFromRedux) => {
 					type={password1Hide ? "password" : "text"}
 					value={password1}
 					onChange={(event: any) => setPassword1(event.target.value)}
-					id='password'
-					autoComplete='current-password'
+					id='password1'
 				/>
 					<TextField
 						variant='outlined'
@@ -157,8 +184,7 @@ const Signup = (props: PropsFromRedux) => {
 						type={password2Hide ? "password" : "text"}
 						value={password2}
 						onChange={(event: any) => setPassword2(event.target.value)}
-						id='password'
-						autoComplete='current-password'
+						id='password2'
 					/>
 					<Button
 						type='submit'
@@ -166,6 +192,7 @@ const Signup = (props: PropsFromRedux) => {
 						variant='contained'
 						color='primary'
 						className={classes.submit}
+						onClick={()=>signUp()}
 					>
 						Sign Up
 					</Button>

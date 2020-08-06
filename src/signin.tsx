@@ -45,7 +45,8 @@ const mapState = (state: RootState) => ({
 	...state["auth"],
 });
 const mapDispatch = {
-	signinUser: (data: any) => ({ type: SIGNIN_USER, payload: data }),
+	signInUser: (data: any) => ({ type: SIGNIN_USER, payload: data }),
+	showMessage: (data:any)=> ({type:"SHOW_MESSAGE",payload:data})
 };
 const connector = connect(mapState, mapDispatch);
 type PropsFromRedux = ConnectedProps<typeof connector>;
@@ -61,7 +62,16 @@ const Signin = (props: PropsFromRedux) => {
 	let [emailID, setEmailId] = React.useState("");
 	let [password, setPassword] = React.useState("");
 	let [password1Hide, setPassword1Hide] = React.useState(true);
-
+const signIn =()=>{
+	if(emailID === "" || password === ""){
+		props.showMessage({
+			msg:"Please Enter all the fields",
+			type:"error"
+		})
+	}else{
+props.signInUser({emailId:emailID,password})
+	}
+}
 	return (
 		<Container component='main' maxWidth='xs'>
 			<CssBaseline />
@@ -121,6 +131,7 @@ const Signin = (props: PropsFromRedux) => {
 						variant='contained'
 						color='primary'
 						className={classes.submit}
+						onClick={()=>signIn()}
 					>
 						Sign In
 					</Button>

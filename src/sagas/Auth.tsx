@@ -1,29 +1,14 @@
 import { all, call, fork, put, takeEvery } from "redux-saga/effects";
-import { SIGNUP_USER,SIGNIN_USER, SIGNOUT_USER } from "../auctions";
+import { SIGNUP_USER, SIGNIN_USER, SIGNOUT_USER,CREATE_USER } from "../auctions";
 
-const signinPromise = async (userName: string, password: string) =>
-	fetch("localhost:80/login", {
+const signinPromise = async (emailId: string, password: string) =>
+	fetch("http://localhost:80/signin", {
 		method: "post",
 		headers: {
 			"Accept": "application/json",
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify({ username: userName, password: password }),
-	})
-		.then((response) => {
-			return response.json();
-		})
-		.catch((err) => {
-			return err.json();
-		});
-const signUpUserPromise = async (password: string, userName: string,emaiId:string) =>
-	fetch("localhost:80/createUser", {
-		method: "put",
-		headers: {
-			"Accept": "application/json",
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ password: password,userName,emaiId }),
+		body: JSON.stringify({ emailId: emailId, password: password }),
 	})
 		.then((response) => {
 			return response.json();
@@ -32,30 +17,66 @@ const signUpUserPromise = async (password: string, userName: string,emaiId:strin
 			return err.json();
 		});
 
+		const createUserPromise = async (emailId: string, userName: string,token:string) =>
+	fetch("http://localhost:80/createUser", {
+		method: "post",
+		headers: {
+			"Accept": "application/json",
+			"Content-Type": "application/json",
+            "Authorization":token
+		},
+		body: JSON.stringify({ emailId: emailId, userName: userName }),
+	})
+		.then((response) => {
+			return response.json();
+		})
+		.catch((err) => {
+			return err.json();
+		});
+const signUpUserPromise = async (
+	password: string,
+	userName: string,
+	emailId: string,
+) =>
+	fetch("http://localhost:80/signup", {
+		method: "post",
+		headers: {
+			"Accept": "application/json",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ password, userName, emailId }),
+	})
+		.then((response) => {
+			return response.json();
+		})
+		.catch((err) => {
+			return err;
+		});
+
 function* userSignout(payload: any) {
-	localStorage.removeItem("user_id");
+	localStorage.removeItem("user");
 	yield put({
 		type: "SIGNOUT_USER_SUCCESS",
 	});
 }
 
 function* userSignUp(payload: any) {
-	yield put({ type: "ON_SHOW_LOADER" });
+	console.log(payload)
 	const userSignupPromise = yield call(
 		signUpUserPromise,
-		payload.payload.data.password,
-		payload.payload.data.userName,
-		payload.payload.data.emailId,
+		payload.payload.password,
+		payload.payload.userName,
+		payload.payload.emailId,
 	);
-	if (userSignupPromise.result === 1) {
+	console.log(userSignupPromise)
+	if (userSignupPromise.success) {
 		yield put({
 			type: "SIGNUP_USER_SUCCESS",
-			payload: payload.payload.authToken,
 		});
-	} else if (userSignupPromise.result === 0) {
+	} else {
 		yield put({
 			type: "SHOW_MESSAGE",
-			payload: { msg: userSignupPromise.msg, type: "error" },
+			payload: { msg: userSignupPromise.message, type: "error" },
 		});
 	}
 }
@@ -64,23 +85,43 @@ function* userSignin(payload: any) {
 	yield put({ type: "ON_SHOW_LOADER" });
 	const signin = yield call(
 		signinPromise,
-		payload.payload.userName,
+		payload.payload.emailId,
 		payload.payload.password,
 	);
-	if (signin.result === 1) {
-		localStorage.setItem("user_id", signin.data.token);
-		localStorage.setItem("corporateName", signin.data.corporateName);
+	if (signin.success === true) {
+		localStorage.setItem("user", signin.result.token);
 		yield put({
 			type: "SIGNIN_USER_SUCCESS",
 			payload: {
-				user_id: signin.data.token,
-				corporateName: signin.data.corporateName,
+				user: signin.result.token,
+				userDetails:{role:signin.result.role,tenantName:signin.result.tenantName,userName:signin.result.userName,
+					emailId:signin.result.emailId,}
 			},
 		});
-	} else if (signin.result === 0) {
+	} else {
 		yield put({
 			type: "SHOW_MESSAGE",
-			payload: { msg: "Username or Password is Incorrect", type: "error" },
+			payload: { msg: signin.message, type: "error" },
+		});
+	}
+}
+
+function* createNewUser(payload: any) {
+	const createUser = yield call(
+		createUserPromise,
+		payload.payload.emailId,
+		payload.payload.userName,
+		payload.payload.authUser
+	);
+	if (createUser.success === true) {
+		yield put({
+			type: "SHOW_MESSAGE",
+			payload: { msg: createUser.message, type: "success" },
+		});
+	} else {
+		yield put({
+			type: "SHOW_MESSAGE",
+			payload: { msg: createUser.message, type: "error" },
 		});
 	}
 }
@@ -94,7 +135,10 @@ export function* signOutUser() {
 export function* signUpUser() {
 	yield takeEvery(SIGNUP_USER, userSignUp);
 }
+export function* createUserNew() {
+	yield takeEvery(CREATE_USER, createNewUser);
+}
 
 export default function* rootSaga() {
-	yield all([fork(signInUser), fork(signOutUser), fork(signUpUser)]);
+	yield all([fork(signInUser), fork(signOutUser), fork(signUpUser),fork(createUserNew)]);
 }
